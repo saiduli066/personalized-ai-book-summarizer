@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { generateEmbedding, cosineSimilarity } from "@/lib/rag";
 import {
   generateMatchExplanation,
   generateLifeProfileSummary,
@@ -12,6 +11,27 @@ export const maxDuration = 300; // 5 minutes for generating matches
 const SHOULD_USE_LOCAL_EMBEDDINGS =
   process.env.USE_LOCAL_EMBEDDINGS === "true" || !process.env.VERCEL;
 
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    return 0;
+  }
+
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+
+  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+  if (denominator === 0) return 0;
+
+  return dotProduct / denominator;
+}
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
@@ -22,11 +42,59 @@ function tokenize(text: string): string[] {
 
 function lexicalSimilarity(query: string, content: string): number {
   const stopWords = new Set([
-    "the", "and", "for", "with", "that", "this", "you", "your", "are", "was", "but", "have", "from", "not", "they", "their", "about", "into", "there", "will", "what", "when", "where", "which", "been", "were", "them", "would", "could", "should", "than", "then", "some", "such", "very", "more", "most", "just", "also", "only", "over", "under", "after", "before", "because", "through", "while",
+    "the",
+    "and",
+    "for",
+    "with",
+    "that",
+    "this",
+    "you",
+    "your",
+    "are",
+    "was",
+    "but",
+    "have",
+    "from",
+    "not",
+    "they",
+    "their",
+    "about",
+    "into",
+    "there",
+    "will",
+    "what",
+    "when",
+    "where",
+    "which",
+    "been",
+    "were",
+    "them",
+    "would",
+    "could",
+    "should",
+    "than",
+    "then",
+    "some",
+    "such",
+    "very",
+    "more",
+    "most",
+    "just",
+    "also",
+    "only",
+    "over",
+    "under",
+    "after",
+    "before",
+    "because",
+    "through",
+    "while",
   ]);
 
   const queryWords = tokenize(query).filter((w) => !stopWords.has(w));
-  const contentWords = new Set(tokenize(content).filter((w) => !stopWords.has(w)));
+  const contentWords = new Set(
+    tokenize(content).filter((w) => !stopWords.has(w)),
+  );
 
   if (queryWords.length === 0 || contentWords.size === 0) return 0;
 
@@ -138,6 +206,7 @@ export async function POST(request: NextRequest) {
 
     if (!lifeEmbedding && SHOULD_USE_LOCAL_EMBEDDINGS) {
       console.log("🔄 Generating life embedding...");
+      const { generateEmbedding } = await import("@/lib/rag");
       lifeEmbedding = await generateEmbedding(lifeSummary);
 
       // Save the embedding
