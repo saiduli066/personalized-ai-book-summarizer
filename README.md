@@ -102,6 +102,7 @@ Edit `.env.local` with your values:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SITE_URL=https://personalized-ai-book-summarizer.vercel.app
 
 # LLM Configuration (choose one or both)
 GROQ_API_KEY=your-groq-api-key
@@ -352,8 +353,11 @@ alora/
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `GROQ_API_KEY`
-   - `LLM_PROVIDER`
+
+- `NEXT_PUBLIC_SITE_URL`
+- `GROQ_API_KEY`
+- `LLM_PROVIDER`
+
 4. Deploy!
 
 ---

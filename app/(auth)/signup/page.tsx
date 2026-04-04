@@ -16,6 +16,9 @@ import { isValidEmail, validatePassword } from "@/lib/utils";
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const verificationBaseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://personalized-ai-book-summarizer.vercel.app";
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
@@ -63,6 +66,7 @@ export default function SignupPage() {
         email,
         password,
         options: {
+          emailRedirectTo: verificationBaseUrl,
           data: {
             full_name: fullName,
           },
@@ -80,12 +84,22 @@ export default function SignupPage() {
       }
 
       if (data.user) {
-        toast({
-          variant: "warm",
-          title: "Welcome to Introsia! 🌟",
-          description: "Let's start by getting to know you a little better.",
-        });
-        router.push("/dashboard/questions");
+        if (data.session) {
+          toast({
+            variant: "warm",
+            title: "Welcome to Introsia! 🌟",
+            description: "Let's start by getting to know you a little better.",
+          });
+          router.push("/dashboard/questions");
+        } else {
+          toast({
+            variant: "warm",
+            title: "Verify your email",
+            description: "We sent a verification link to your inbox. Please verify to continue.",
+          });
+          sessionStorage.setItem("showVerifyReminder", "1");
+          router.push("/login");
+        }
       }
     } catch (error) {
       toast({

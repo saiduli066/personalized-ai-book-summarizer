@@ -16,10 +16,18 @@ import { isValidEmail } from "@/lib/utils";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [shouldShowVerificationReminder, setShouldShowVerificationReminder] = React.useState(false);
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    if (sessionStorage.getItem("showVerifyReminder") === "1") {
+      setShouldShowVerificationReminder(true);
+      sessionStorage.removeItem("showVerifyReminder");
+    }
+  }, []);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -104,6 +112,12 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent>
+          {shouldShowVerificationReminder && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+              Check your inbox for a verification email, then sign in once your email is confirmed.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div className="space-y-2">
