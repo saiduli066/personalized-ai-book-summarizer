@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { PwaRegister } from "@/components/PwaRegister";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -30,9 +31,16 @@ export const metadata: Metadata = {
     "personalized",
   ],
   authors: [{ name: "Introsia" }],
+  applicationName: "Introsia",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Introsia",
+  },
   icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
+    icon: [{ url: "/icon?size=192" }, { url: "/icon?size=512" }],
+    apple: [{ url: "/apple-icon" }],
   },
   openGraph: {
     title: "Introsia - Find the words that find you",
@@ -58,6 +66,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <PwaRegister />
           {children}
           <Toaster />
         </ThemeProvider>
