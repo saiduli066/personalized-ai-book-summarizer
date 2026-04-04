@@ -7,6 +7,10 @@
 
 import { pipeline } from "@xenova/transformers";
 
+const EMBEDDING_CACHE_DIR = process.env.VERCEL
+  ? "/tmp/models"
+  : "./.cache/models";
+
 // Singleton pattern for the embedding model
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let embeddingPipeline: any = null;
@@ -24,7 +28,7 @@ export async function getEmbeddingPipeline(): Promise<any> {
       "Xenova/all-MiniLM-L6-v2",
       {
         // Cache the model locally
-        cache_dir: "./.cache/models",
+        cache_dir: EMBEDDING_CACHE_DIR,
       },
     );
     console.log("✅ Embedding model loaded!");

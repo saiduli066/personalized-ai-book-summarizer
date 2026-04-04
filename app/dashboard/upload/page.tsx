@@ -14,6 +14,31 @@ import { getLoadingMessage } from "@/lib/utils";
 
 type ProcessingStatus = "idle" | "uploading" | "processing" | "generating" | "complete";
 
+const MAX_SERVERLESS_PDF_SIZE_BYTES = 4 * 1024 * 1024; // ~4MB safe limit for serverless body size
+
+async function getErrorMessageFromResponse(response: Response, fallbackMessage: string): Promise<string> {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      const body = await response.json();
+      return body?.error || body?.message || fallbackMessage;
+    } catch {
+      return fallbackMessage;
+    }
+  }
+
+  try {
+    const text = await response.text();
+    if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+      return "PDF processing failed on the server. This is often caused by a file too large for the production upload limit. Try a smaller PDF (under 4MB).";
+    }
+    return text || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -77,6 +102,11 @@ export default function UploadPage() {
       // Upload each file
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+
+        if (file.size > MAX_SERVERLESS_PDF_SIZE_BYTES) {
+          throw new Error(`\"${file.name}\" is too large for production processing. Please upload a PDF under 4MB.`);
+        }
+
         setProgress(10 + (i / files.length) * 30);
 
         // Upload to Supabase Storage
@@ -121,8 +151,11 @@ export default function UploadPage() {
         });
 
         if (!processResponse.ok) {
-          const error = await processResponse.json();
-          throw new Error(error.message || "Failed to process PDF");
+          const message = await getErrorMessageFromResponse(
+            processResponse,
+            "Failed to process PDF",
+          );
+          throw new Error(message);
         }
       }
 
@@ -137,8 +170,11 @@ export default function UploadPage() {
       });
 
       if (!matchResponse.ok) {
-        const error = await matchResponse.json();
-        throw new Error(error.message || "Failed to generate matches");
+        const message = await getErrorMessageFromResponse(
+          matchResponse,
+          "Failed to generate matches",
+        );
+        throw new Error(message);
       }
 
       const { sessionId } = await matchResponse.json();
@@ -183,8 +219,11 @@ export default function UploadPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to generate matches");
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to generate matches",
+        );
+        throw new Error(message);
       }
 
       const { sessionId } = await response.json();
@@ -338,7 +377,7 @@ export default function UploadPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <PdfUploader onFilesReady={handleFilesReady} maxFiles={3} maxSizeMB={20} />
+        <PdfUploader onFilesReady={handleFilesReady} maxFiles={3} maxSizeMB={4} />
       </motion.div>
     </div>
   );
