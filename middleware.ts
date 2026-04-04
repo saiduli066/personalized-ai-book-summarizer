@@ -52,6 +52,14 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path),
   );
 
+  const isRootPath = request.nextUrl.pathname === "/";
+
+  if (isRootPath && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
   if (isProtectedPath && !user) {
     // Not logged in, redirect to login
     const url = request.nextUrl.clone();

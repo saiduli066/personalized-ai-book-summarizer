@@ -39,6 +39,58 @@ async function getErrorMessageFromResponse(response: Response, fallbackMessage: 
   }
 }
 
+function getUploadErrorToast(error: unknown): { title: string; description: string } {
+  const message = error instanceof Error ? error.message : "Please try again.";
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes("too large")) {
+    return {
+      title: "PDF too large",
+      description: message,
+    };
+  }
+
+  if (lowerMessage.includes("failed to parse pdf") || lowerMessage.includes("non-encrypted pdf")) {
+    return {
+      title: "We couldn't read this PDF",
+      description: "Please upload a standard, text-based PDF (not scanned or encrypted).",
+    };
+  }
+
+  if (lowerMessage.includes("failed to upload")) {
+    return {
+      title: "Upload failed",
+      description: "We couldn't upload your file to storage. Please check your connection and try again.",
+    };
+  }
+
+  if (lowerMessage.includes("could not extract meaningful text")) {
+    return {
+      title: "Not enough readable text",
+      description: "This PDF may be image-only or poorly formatted. Try another file with selectable text.",
+    };
+  }
+
+  if (lowerMessage.includes("runtime limit") || lowerMessage.includes("timeout")) {
+    return {
+      title: "Processing timed out",
+      description: "Server processing took too long. Please retry in a moment.",
+    };
+  }
+
+  if (lowerMessage.includes("rate limit") || lowerMessage.includes("too many requests")) {
+    return {
+      title: "Too many requests",
+      description: "Please wait a bit, then try again.",
+    };
+  }
+
+  return {
+    title: "Could not process your PDF",
+    description: message,
+  };
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -194,10 +246,11 @@ export default function UploadPage() {
       }, 1000);
     } catch (error) {
       console.error("Error processing books:", error);
+      const errorToast = getUploadErrorToast(error);
       toast({
         variant: "destructive",
-        title: "Something went wrong",
-        description: error instanceof Error ? error.message : "Please try again.",
+        title: errorToast.title,
+        description: errorToast.description,
       });
       setStatus("idle");
       setProgress(0);
