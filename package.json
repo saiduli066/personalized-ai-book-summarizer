@@ -1,5 +1,5 @@
 {
-  "name": "alora",
+  "name": "introsia",
   "version": "1.0.0",
   "description": "Personal Motivation Engine - Find the words that find you",
   "private": true,
@@ -30,7 +30,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^11.5.4",
     "lucide-react": "^0.441.0",
-    "next": "15.0.0",
+    "next": "^16.2.2",
     "next-themes": "^0.3.0",
     "pdf-parse": "^1.1.1",
     "react": "^18.3.1",
