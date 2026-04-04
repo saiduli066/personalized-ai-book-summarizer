@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { generateEmbedding, cosineSimilarity } from "@/lib/rag";
 import {
   generateMatchExplanation,
@@ -35,6 +35,13 @@ function parseEmbedding(embedding: number[] | string): number[] {
     }
   }
   return [];
+}
+
+function createServerClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -131,8 +138,10 @@ export async function POST(request: NextRequest) {
     console.log(`📝 Calculating similarity for ${chunks.length} chunks...`);
 
     // Parse life embedding if needed
-    const parsedLifeEmbedding = parseEmbedding(lifeEmbedding as number[] | string);
-    
+    const parsedLifeEmbedding = parseEmbedding(
+      lifeEmbedding as number[] | string,
+    );
+
     // Calculate similarity scores
     const scoredChunks = (chunks as ChunkWithEmbedding[])
       .filter((chunk) => chunk.embedding)
@@ -141,9 +150,10 @@ export async function POST(request: NextRequest) {
         return {
           ...chunk,
           embedding: parsedChunkEmbedding,
-          similarity: parsedChunkEmbedding.length === parsedLifeEmbedding.length
-            ? cosineSimilarity(parsedLifeEmbedding, parsedChunkEmbedding)
-            : 0,
+          similarity:
+            parsedChunkEmbedding.length === parsedLifeEmbedding.length
+              ? cosineSimilarity(parsedLifeEmbedding, parsedChunkEmbedding)
+              : 0,
         };
       })
       .filter((chunk) => chunk.similarity > 0)

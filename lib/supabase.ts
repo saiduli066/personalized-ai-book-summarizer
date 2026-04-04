@@ -1,13 +1,13 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./database.types";
 
 // ============================================================================
 // Client-Side Supabase Client (for use in React components)
+// Using untyped client to avoid strict type inference issues
 // ============================================================================
 
 export function createClient() {
-  return createBrowserClient<Database>(
+  return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
@@ -19,7 +19,7 @@ export function createClient() {
 // ============================================================================
 
 export function createServerClient() {
-  return createSupabaseClient<Database>(
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -32,18 +32,80 @@ export function createServerClient() {
 }
 
 // ============================================================================
-// Type-Safe Database Helpers
+// Type Definitions (for reference, not enforced on client)
 // ============================================================================
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-export type LifeProfile = Database["public"]["Tables"]["life_profiles"]["Row"];
-export type Book = Database["public"]["Tables"]["books"]["Row"];
-export type BookChunk = Database["public"]["Tables"]["book_chunks"]["Row"];
-export type MatchSession =
-  Database["public"]["Tables"]["match_sessions"]["Row"];
-export type Match = Database["public"]["Tables"]["matches"]["Row"];
-export type SavedExcerpt =
-  Database["public"]["Tables"]["saved_excerpts"]["Row"];
+export interface Profile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LifeProfile {
+  id: string;
+  user_id: string;
+  answers: Record<string, string>;
+  life_summary: string | null;
+  life_embedding: number[] | null;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Book {
+  id: string;
+  user_id: string;
+  title: string;
+  author: string | null;
+  file_path: string;
+  file_size: number | null;
+  page_count: number | null;
+  processed: boolean;
+  processing_status: string;
+  created_at: string;
+}
+
+export interface BookChunk {
+  id: string;
+  book_id: string;
+  user_id: string;
+  content: string;
+  page_number: number | null;
+  chunk_index: number | null;
+  embedding: number[] | null;
+  created_at: string;
+}
+
+export interface MatchSession {
+  id: string;
+  user_id: string;
+  book_ids: string[];
+  created_at: string;
+}
+
+export interface Match {
+  id: string;
+  session_id: string;
+  user_id: string;
+  chunk_id: string;
+  book_id: string;
+  relevance_score: number | null;
+  why_relevant: string | null;
+  action_step: string | null;
+  is_saved: boolean;
+  feedback: string | null;
+  created_at: string;
+}
+
+export interface SavedExcerpt {
+  id: string;
+  user_id: string;
+  match_id: string;
+  notes: string | null;
+  created_at: string;
+}
 
 // ============================================================================
 // Auth Helpers

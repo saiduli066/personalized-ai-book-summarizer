@@ -9,6 +9,7 @@ import { MatchCard } from "@/components/MatchCard";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
+import { use } from "react";
 
 interface MatchData {
   id: string;
@@ -32,8 +33,9 @@ interface MatchData {
 export default function ResultsPage({
   params,
 }: {
-  params: { sessionId: string };
+  params: Promise<{ sessionId: string }>;
 }) {
+  const { sessionId } = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const [userId, setUserId] = React.useState<string | null>(null);
@@ -54,7 +56,7 @@ export default function ResultsPage({
       setUserId(user.id);
 
       // Verify session belongs to user
-      const session = await getMatchSession(params.sessionId, user.id);
+      const session = await getMatchSession(sessionId, user.id);
       if (!session) {
         toast({
           variant: "destructive",
@@ -66,7 +68,7 @@ export default function ResultsPage({
       }
 
       // Load matches
-      const matchesData = await getMatchesForSession(params.sessionId, user.id);
+      const matchesData = await getMatchesForSession(sessionId, user.id);
       setMatches(matchesData as MatchData[]);
       setSavedCount(matchesData.filter((m) => m.is_saved).length);
 
@@ -74,7 +76,7 @@ export default function ResultsPage({
     }
 
     loadResults();
-  }, [params.sessionId, router, toast]);
+  }, [sessionId, router, toast]);
 
   const handleSave = async (matchId: string) => {
     if (!userId) return;
@@ -226,7 +228,7 @@ export default function ResultsPage({
                 Tip: Save your favorites!
               </p>
               <p className="text-sm text-sky-700 dark:text-sky-300 mt-1 leading-relaxed">
-                Click the <strong>"Save"</strong> button on any card to add it to your Wisdom Journal. 
+                Click the <strong>"Save"</strong> button on any card to add it to your Wisdom Journal.
                 You can revisit saved excerpts anytime from "My Wisdom" in the menu.
               </p>
             </div>

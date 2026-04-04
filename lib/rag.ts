@@ -5,16 +5,18 @@
  * using local transformers.js for zero-cost embeddings.
  */
 
-import { pipeline, Pipeline } from "@xenova/transformers";
+import { pipeline } from "@xenova/transformers";
 
 // Singleton pattern for the embedding model
-let embeddingPipeline: Pipeline | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let embeddingPipeline: any = null;
 
 /**
  * Initialize the embedding model (all-MiniLM-L6-v2)
  * This runs locally, no API calls needed!
  */
-export async function getEmbeddingPipeline(): Promise<Pipeline> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getEmbeddingPipeline(): Promise<any> {
   if (!embeddingPipeline) {
     console.log("🔄 Loading embedding model (first time may take a moment)...");
     embeddingPipeline = await pipeline(

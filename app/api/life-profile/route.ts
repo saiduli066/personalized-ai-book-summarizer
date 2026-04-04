@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { generateEmbedding } from "@/lib/rag";
 import { generateLifeProfileSummary } from "@/lib/llm";
+
+function createServerClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,13 +32,8 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
-    let profileData: {
-      answers: Record<string, string>;
-      completed: boolean;
-      life_summary?: string;
-      life_embedding?: number[];
-      updated_at: string;
-    } = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let profileData: any = {
       answers,
       completed: completed || false,
       updated_at: new Date().toISOString(),

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { chunkText, generateEmbeddings, filterQualityChunks } from "@/lib/rag";
 import pdf from "pdf-parse";
 
@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createServerClient();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
 
     // Update book status to processing
     await supabase
@@ -156,13 +159,18 @@ export async function POST(request: NextRequest) {
       const formData = await request.formData();
       const bookId = formData.get("bookId") as string;
       if (bookId) {
-        const supabase = createServerClient();
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        );
         await supabase
           .from("books")
           .update({ processing_status: "failed" })
           .eq("id", bookId);
       }
-    } catch {}
+    } catch {
+      // Ignore errors in cleanup
+    }
 
     return NextResponse.json(
       {
