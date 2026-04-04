@@ -6,6 +6,9 @@ import pdf from "pdf-parse";
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes for PDF processing
 
+const SHOULD_USE_LOCAL_EMBEDDINGS =
+  process.env.USE_LOCAL_EMBEDDINGS === "true" || !process.env.VERCEL;
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -105,11 +108,16 @@ export async function POST(request: NextRequest) {
       console.log(`📊 Sampled down to ${chunks.length} chunks`);
     }
 
-    // Generate embeddings for all chunks
-    console.log(`🔄 Generating embeddings for ${chunks.length} chunks...`);
-    const texts = chunks.map((c) => c.content);
-    const embeddings = await generateEmbeddings(texts);
-    console.log(`✅ Generated ${embeddings.length} embeddings`);
+    let embeddings: number[][] = [];
+    if (SHOULD_USE_LOCAL_EMBEDDINGS) {
+      // Generate embeddings for all chunks
+      console.log(`🔄 Generating embeddings for ${chunks.length} chunks...`);
+      const texts = chunks.map((c) => c.content);
+      embeddings = await generateEmbeddings(texts);
+      console.log(`✅ Generated ${embeddings.length} embeddings`);
+    } else {
+      console.log("⚡ Skipping local embeddings in Vercel; lexical fallback will be used for matching.");
+    }
 
     // Prepare chunk records for database
     const chunkRecords = chunks.map((chunk, i) => ({
@@ -119,7 +127,7 @@ export async function POST(request: NextRequest) {
       chunk_index: chunk.index,
       // Estimate page number based on position
       page_number: Math.ceil((chunk.index / chunks.length) * pageCount),
-      embedding: embeddings[i],
+      embedding: SHOULD_USE_LOCAL_EMBEDDINGS ? embeddings[i] : null,
     }));
 
     // Insert chunks in batches (Supabase has limits)

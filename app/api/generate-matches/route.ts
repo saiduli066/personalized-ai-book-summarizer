@@ -9,6 +9,35 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes for generating matches
 
+const SHOULD_USE_LOCAL_EMBEDDINGS =
+  process.env.USE_LOCAL_EMBEDDINGS === "true" || !process.env.VERCEL;
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+}
+
+function lexicalSimilarity(query: string, content: string): number {
+  const stopWords = new Set([
+    "the", "and", "for", "with", "that", "this", "you", "your", "are", "was", "but", "have", "from", "not", "they", "their", "about", "into", "there", "will", "what", "when", "where", "which", "been", "were", "them", "would", "could", "should", "than", "then", "some", "such", "very", "more", "most", "just", "also", "only", "over", "under", "after", "before", "because", "through", "while",
+  ]);
+
+  const queryWords = tokenize(query).filter((w) => !stopWords.has(w));
+  const contentWords = new Set(tokenize(content).filter((w) => !stopWords.has(w)));
+
+  if (queryWords.length === 0 || contentWords.size === 0) return 0;
+
+  let overlap = 0;
+  for (const word of queryWords) {
+    if (contentWords.has(word)) overlap += 1;
+  }
+
+  return overlap / Math.max(8, Math.min(30, queryWords.length));
+}
+
 interface ChunkWithEmbedding {
   id: string;
   book_id: string;
@@ -107,7 +136,7 @@ export async function POST(request: NextRequest) {
         .eq("id", lifeProfile.id);
     }
 
-    if (!lifeEmbedding) {
+    if (!lifeEmbedding && SHOULD_USE_LOCAL_EMBEDDINGS) {
       console.log("🔄 Generating life embedding...");
       lifeEmbedding = await generateEmbedding(lifeSummary);
 
@@ -137,27 +166,42 @@ export async function POST(request: NextRequest) {
 
     console.log(`📝 Calculating similarity for ${chunks.length} chunks...`);
 
-    // Parse life embedding if needed
-    const parsedLifeEmbedding = parseEmbedding(
-      lifeEmbedding as number[] | string,
+    const hasEmbeddings = (chunks as ChunkWithEmbedding[]).some(
+      (chunk) => !!chunk.embedding,
     );
 
-    // Calculate similarity scores
-    const scoredChunks = (chunks as ChunkWithEmbedding[])
-      .filter((chunk) => chunk.embedding)
-      .map((chunk) => {
-        const parsedChunkEmbedding = parseEmbedding(chunk.embedding);
-        return {
+    let scoredChunks: Array<ChunkWithEmbedding & { similarity: number }> = [];
+
+    if (SHOULD_USE_LOCAL_EMBEDDINGS && hasEmbeddings && lifeEmbedding) {
+      // Parse life embedding if needed
+      const parsedLifeEmbedding = parseEmbedding(
+        lifeEmbedding as number[] | string,
+      );
+
+      scoredChunks = (chunks as ChunkWithEmbedding[])
+        .filter((chunk) => chunk.embedding)
+        .map((chunk) => {
+          const parsedChunkEmbedding = parseEmbedding(chunk.embedding);
+          return {
+            ...chunk,
+            similarity:
+              parsedChunkEmbedding.length === parsedLifeEmbedding.length
+                ? cosineSimilarity(parsedLifeEmbedding, parsedChunkEmbedding)
+                : 0,
+          };
+        })
+        .filter((chunk) => chunk.similarity > 0)
+        .sort((a, b) => b.similarity - a.similarity);
+    } else {
+      console.log("⚡ Using lexical fallback similarity in production.");
+      scoredChunks = (chunks as ChunkWithEmbedding[])
+        .map((chunk) => ({
           ...chunk,
-          embedding: parsedChunkEmbedding,
-          similarity:
-            parsedChunkEmbedding.length === parsedLifeEmbedding.length
-              ? cosineSimilarity(parsedLifeEmbedding, parsedChunkEmbedding)
-              : 0,
-        };
-      })
-      .filter((chunk) => chunk.similarity > 0)
-      .sort((a, b) => b.similarity - a.similarity);
+          similarity: lexicalSimilarity(lifeSummary, chunk.content),
+        }))
+        .filter((chunk) => chunk.similarity > 0)
+        .sort((a, b) => b.similarity - a.similarity);
+    }
 
     // Take top 10 most relevant chunks
     const topChunks = scoredChunks.slice(0, 10);

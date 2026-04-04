@@ -31,7 +31,7 @@ async function getErrorMessageFromResponse(response: Response, fallbackMessage: 
   try {
     const text = await response.text();
     if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-      return "PDF processing failed on the server. This is often caused by a file too large for the production upload limit. Try a smaller PDF (under 4MB).";
+      return "PDF processing failed on the server. This is usually a production function timeout or runtime limit. Please try again; if it persists, check deployment logs.";
     }
     return text || fallbackMessage;
   } catch {
