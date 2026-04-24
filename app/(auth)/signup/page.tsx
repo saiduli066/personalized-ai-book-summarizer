@@ -18,13 +18,42 @@ export default function SignupPage() {
   const { toast } = useToast();
   const verificationBaseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://personalized-ai-book-summarizer.vercel.app";
+    "https://introsia.pro.bd";
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [fullName, setFullName] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  // Handle auth callback (email verification with code from URL)
+  React.useEffect(() => {
+    const handleAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const type = params.get("type");
+
+      if (code && type === "signup") {
+        try {
+          const supabase = createClient();
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (!error) {
+            toast({
+              variant: "warm",
+              title: "Email verified! 🎉",
+              description: "Welcome! Let's get to know you better.",
+            });
+            router.push("/dashboard/questions");
+          }
+        } catch (error) {
+          console.error("Auth callback error:", error);
+        }
+      }
+    };
+
+    handleAuthCallback();
+  }, [router, toast]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};

@@ -54,10 +54,19 @@ export async function middleware(request: NextRequest) {
 
   const isRootPath = request.nextUrl.pathname === "/";
 
-  if (isRootPath && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  // Root path routing
+  if (isRootPath) {
+    if (user) {
+      // Logged in user → redirect to dashboard (home)
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    } else {
+      // Not logged in user → redirect to landing page
+      const url = request.nextUrl.clone();
+      url.pathname = "/landing";
+      return NextResponse.redirect(url);
+    }
   }
 
   if (isProtectedPath && !user) {

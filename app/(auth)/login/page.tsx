@@ -22,6 +22,35 @@ export default function LoginPage() {
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  // Handle auth callback (email verification with code from URL)
+  React.useEffect(() => {
+    const handleAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const type = params.get("type");
+
+      if (code && (type === "signup" || type === "magiclink")) {
+        try {
+          const supabase = createClient();
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (!error) {
+            toast({
+              variant: "warm",
+              title: "Email verified! 🎉",
+              description: "Welcome back! Redirecting to your dashboard.",
+            });
+            router.push("/dashboard");
+          }
+        } catch (error) {
+          console.error("Auth callback error:", error);
+        }
+      }
+    };
+
+    handleAuthCallback();
+  }, [router, toast]);
+
   React.useEffect(() => {
     if (sessionStorage.getItem("showVerifyReminder") === "1") {
       setShouldShowVerificationReminder(true);
